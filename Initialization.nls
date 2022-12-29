@@ -1,0 +1,613 @@
+to initialize-status
+  ask people with [age < 18] [set status 1]
+  ask people with [age >= 18 and age <= 35] [if (income <= 3000) [set status 1]]
+  ask people with [age > 18 and income > 3000] [set status 2]
+end
+
+to initialize-education
+  ask people with [education-level = 1]
+  [
+    if (Age < 3) [set education 0]
+    if (Age >= 3 and age <= 5) [set education 1]
+    if (age >= 6 and age <= 11) [set education 2]
+    if (age >= 12 and age <= 14) [set education 3]
+    if (age >= 15 and age <= 17) [set education 4]
+  ]
+  ask people
+  [
+    if education-level = 2 [set education 5]
+    if education-level = 3 [set education 6 + random 2] ;临时分配，之后需要调整
+    if education-level = 4 [set education 8 + random 2] ;临时分配，之后需要调整
+  ]
+
+  ;幼儿园
+  ask people with [education = 1]
+  [
+    set edu-year-required 3
+    if (age = 3) [set edu-year 1]
+    if (age = 4) [set edu-year 2]
+    if (age = 5) [set edu-year 3]
+  ]
+  
+  ;小学
+  ask people with [education = 2]
+  [
+    set edu-year-required 6
+    if (age = 6) [set edu-year 1]
+    if (age = 7) [set edu-year 2]
+    if (age = 8) [set edu-year 3]
+    if (age = 9) [set edu-year 4]
+    if (age = 10) [set edu-year 5]
+    if (age = 11) [set edu-year 6]
+  ] 
+  
+  ;初中
+  ask people with [education = 3]
+  [
+    set edu-year-required 3
+    if (age = 12) [set edu-year 1]
+    if (age = 13) [set edu-year 2]
+    if (age = 14) [set edu-year 3]
+  ]
+  
+  ;高中或中专
+  ask people with [education = 4]
+  [
+    set edu-year-required 3
+    if (age = 15) [set edu-year 1]
+    if (age = 16) [set edu-year 2]
+    if (age = 17) [set edu-year 3]
+  ]
+  
+  ;大专
+  ask people with [education = 5 and status = 1]
+  [
+    set edu-year-required 3
+    if (age = 18) [set edu-year 1]
+    if (age = 19) [set edu-year 2]
+    if (age = 20) [set edu-year 3]
+  ]
+  
+  ;大学
+  ask people with [education = 6 and status = 1]
+  [
+    set edu-year-required 4
+    if (age = 18) [set edu-year 1]
+    if (age = 19) [set edu-year 2]
+    if (age = 20) [set edu-year 3]
+    if (age = 21) [set edu-year 4]
+  ]
+  
+  ;硕士研究生
+  ask people with [education = 8 and status = 1]
+  [
+    set edu-year-required 3
+    if (age <= 22) [set edu-year 1]
+    if (age = 23) [let p random 1 ifelse (p = 0) [set edu-year 1] [set edu-year 2]]
+    if (age >= 24) [let p random 3 set edu-year (p + 1)]
+  ]
+  
+  ;4年制博士研究生
+  ask people with [education = 9 and status = 1]
+  [
+    set edu-year-required 4
+    if (age <= 25)[set edu-year 1]
+    if (age = 26) [let p random 1 ifelse (p = 0) [set edu-year 1] [set edu-year 2]]
+    if (age = 27) [let p random 3 set edu-year (p + 1)]
+    if (Age = 28) [let p random 4 set edu-year (p + 1)]
+  ]
+end
+
+
+to find-hhder
+    ;找到每一户的户主
+    let i 1
+    let num-hhd max [hhd] of people
+    while [i <= num-hhd]
+    [
+      if count people with [hhd = i] > 0
+      [
+        ifelse (count people with [hhd = i and age >= 18] > 0)
+        [ask one-of people with [hhd = i and age >= 18] [set relationship 1]]
+        [ask one-of people with [hhd = i] [set relationship 1]]
+      ]
+      set i i + 1
+    ]
+end
+
+to initialize-relationship
+   ;确认每个人与户主的关系
+  let i 1
+  let num-person max [who] of people
+  let num-hhd max [hhd] of people
+  while [i < num-person]
+  [
+    ask person i [
+      if (relationship = 0)
+      [
+        let hhd1 hhd
+        let hhder1 one-of people with [relationship = 1 and hhd = hhd1]
+        let age1 [age] of hhder1 ;户主的年龄
+        let gender1 [gender] of hhder1 ;户主的性别
+      
+        ;判断是否为配偶：（1）年龄差不大于20岁；（2）性别不同；（3）户主无配偶
+        if (gender1 = 0 and age1 >= 20) or (gender1 = 1 and age1 >= 22)
+        [
+          if (relationship = 0 and age - age1 <= 20 and age1 - age <= 20 and gender != gender1 and count people with [hhd = hhd1 and relationship = 2] = 0 and (gender = 1 and age >= 22) or (gender = 0 and age >= 20))
+          [set relationship 2]
+        ]
+      
+        ;判断是否为儿子/女儿 或 儿媳/女婿：年龄差在21~44岁之间
+        if (relationship = 0 and age1 - age <= 44 and age1 - age >= 21) 
+        [
+          if (gender = 1 and age < 22) [set relationship 3] ;未达到适婚年龄的男性，为儿子
+          if (gender = 0 and age < 20) [set relationship 3] ;未达到适婚年龄的女性，为女儿
+        
+          if (gender = 1 and age >= 22) ;如果我是男性，且年龄大于22岁
+          [
+            ;判断户主是否有适婚的女儿
+            ifelse (count people with [relationship = 3 and hhd = hhd1 and gender = 0 and age >= 20] > count people with [relationship = 13 and hhd = hhd1 and gender = 1])
+            [set relationship 13]
+            [set relationship 3]
+          ]
+        
+          if (gender = 0 and age >= 20)
+          [
+            ;判断户主是否有适婚的儿子
+            ifelse (count people with [relationship = 3 and hhd = hhd1 and gender = 1 and age >= 22] < count people with [gender = 0 and relationship = 13 and hhd = hhd1])
+            [set relationship 13]
+            [set relationship 3]
+          ]    
+        ]
+      
+        ;判断是否为孙子、孙女：年龄差大于45岁
+        if (relationship = 0 and age1 - age >= 45) [set relationship 6]
+      
+        ;判断是否为父母：（1）年龄差在21~44岁之间 （2）暂无person的关系为户主的父母
+        if (relationship = 0 and age - age1 >= 21 and age - age1 <= 44 and count people with [gender = [gender] of myself and relationship = 4 and hhd = hhd1] = 0)
+        [set relationship 4]
+      
+        ;判断是否为配偶的父母：（1）年龄在21~44岁之间；（2）有配偶；（3）暂无person的关系为户主的配偶的父母
+        if (relationship = 0 and age - age1 >= 21 and age - age1 <= 44 and count people with [gender = [gender] of myself and relationship = 4 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 5 and hhd = hhd1] = 0 and count people with [hhd = hhd1 and relationship = 2] = 1)
+        [set relationship 5]
+      
+        ;判断是否为户主的爷爷奶奶：（1）年龄差大于45岁；（2）暂无person的关系为户主的爷爷奶奶
+        if (relationship = 0 and age - age1 >= 45 and count people with [gender = [gender] of myself and relationship = 7 and hhd = hhd1] = 0)
+        [set relationship 7]
+      
+        ;判断是否为户主的外公外婆：（1）年龄差大于45岁；（2）已有爷爷奶奶；（3）暂无person的关系为户主的外公外婆
+        if (relationship = 0 and age - age1 >= 45 and count people with [gender = [gender] of myself and relationship = 7 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 8 and hhd = hhd1] = 0)
+        [set relationship 8]
+      
+        ;判断是否为户主配偶的爷爷奶奶：（1）年龄差大于45岁；（2）已有户主的爷爷奶奶外公外婆角色；（3）暂无person的关系为户主配偶的爷爷奶奶 （4）有配偶
+        if (relationship = 0 and age - age1 >= 45 and count people with [gender = [gender] of myself and relationship = 7 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 8 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 9 and hhd = hhd1] = 0 and count people with [hhd = hhd1 and relationship = 2] = 1)
+        [set relationship 9]
+      
+        ;判断是否为户主配偶的外公外婆：（2）年龄差大于45岁；（2）已有户主的爷爷奶奶外公外婆、户主的配偶的爷爷奶奶角色；（3）暂无person的关系为户主配偶的外公外婆的角色；（4）有配偶
+        if (relationship = 0 and age - age1 >= 45 and count people with [gender = [gender] of myself and relationship = 7 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 8 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 9 and hhd = hhd1] = 1 and count people with [hhd = hhd1 and relationship = 2] = 1 and count people with [gender = [gender] of myself and hhd = hhd1 and relationship = 10] = 0)
+        [set relationship 10]
+      
+        ;判断是否为户主的兄弟姐妹 ：（1）与户主年龄差在20岁以内
+        if (relationship = 0)
+       [
+         if (abs (age - age1) <= 20)
+          [set relationship  11]
+       ]
+      
+        ;其他关系
+        if (relationship = 0) [set relationship 12]
+      ]
+    
+      
+    ]
+  set i i + 1
+  ]
+  
+  ;创建连线
+  let j 1
+  set num-person max [who] of people
+  while [j < num-person]
+  [
+    ask person j 
+    [
+      if (relationship = 1) ;户主本人
+      [
+        ;妻子丈夫
+        let hw one-of other people with [not link-neighbor? myself and relationship = 2 and hhd = [hhd] of myself]
+        if hw != nobody [create-couple-with hw]
+        
+        ;父母
+        let fm other people with [not link-neighbor? myself and relationship = 4 and hhd = [hhd] of myself]
+        if (fm != nobody) [create-parents-with fm]
+        
+        ;儿女
+        let sd other people with [not link-neighbor? myself and relationship = 3 and hhd = [hhd] of myself]
+        if (sd != nobody) [create-parents-with sd]
+        
+        ;孙子孙女
+        let gsd other people with [not link-neighbor? myself and relationship = 6 and hhd = [hhd] of myself]
+        if (gsd != nobody) [create-grapas-with gsd]
+        
+        ;爷爷奶奶外公外婆
+        let gp other people with [not link-neighbor? myself and (relationship = 7 or relationship = 8) and hhd = [hhd] of myself]
+        if (gp != nobody) [create-grapas-with gp]
+      ]
+        
+      if (relationship = 2) ;户主的配偶
+      [
+        ;儿女
+        let children other people with [not link-neighbor? myself and relationship = 3 and hhd = [hhd] of myself]
+        if (children != nobody) [create-parents-with children]
+        
+        ;父母
+        let fm other people with [not link-neighbor? myself and relationship = 5 and hhd = [hhd] of myself]
+        if (fm != nobody) [create-parents-with fm]
+        
+        ;爷爷奶奶外公外婆
+        let gp other people with [not link-neighbor? myself and (relationship = 9 or relationship = 10) and hhd = [hhd] of myself]
+        if (gp != nobody) [create-grapas-with gp]
+        
+        ;孙子孙女
+        let sd other people with [not link-neighbor? myself and relationship = 3 and hhd = [hhd] of myself]
+        if (sd != nobody) [create-parents-with sd]
+      ]
+      
+      if (relationship = 3 and ((gender = 1 and age >= 22) or (gender = 0 and age >= 20))) ;户主的儿女
+      [
+        ;妻子丈夫
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 13 and gender != [gender] of myself]
+        if hw != nobody [create-couple-with hw]
+      ]
+      
+      if (relationship = 4) ;户主的父母
+      [
+        ;妻子或丈夫
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 5]
+        if hw != nobody [create-couple-with hw]
+        
+        ;儿女
+        let children other people with [not link-neighbor? myself and hhd = [hhd] of myself and (relationship = 1 or relationship = 11)]
+        if (Children != nobody) [create-parents-with children]
+        
+        ;父母
+        ifelse (gender = 1) 
+        [
+          ;该agent为户主的父亲，则与户主的爷爷奶奶连线
+          let fm other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 7]
+          if (fm != nobody) [create-parents-with fm]
+        ]
+        [
+          ;该agent为户主的母亲，与户主的外公外婆连线
+          let fm other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 8]
+          if (fm != nobody) [create-parents-with fm]
+        ]
+        
+        ;孙子孙女
+        let gsd other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 3]
+        if (gsd != nobody) [create-grapas-with gsd]
+      ]
+      
+      if (relationship = 5) ;户主配偶的父母
+      [
+        ;妻子丈夫
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 5]
+        if hw != nobody [create-couple-with hw]
+        
+        ;父母
+        ifelse (gender = 1)
+        [
+          ;该agent为户主配偶的父亲，则与户主配偶的爷爷奶奶连线
+          let fm other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 9]
+          if (fm != nobody) [create-parents-with fm]
+        ]
+        [
+          ;该agent为户主配偶的母亲，与户主配偶的外公外婆连线
+          let fm other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 108]
+          if (fm != nobody) [create-parents-with fm]
+        ]
+        
+        ;外孙子孙女
+        let gsd other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 3]
+        if (gsd != nobody) [create-grapas-with gsd]
+      ]
+    
+      if (relationship = 6) ;户主的孙子/孙女
+      [
+        ;父母
+        let fm1 one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and ((gender = 1 and age >= 22) or (gender = 0 and age >= 20)) and relationship = 3]
+        if (fm1 != nobody)
+        [
+          create-parent-with fm1
+          let fm2 one-of other people with [couple-neighbor? fm1]
+          if (fm2 != nobody) [create-parent-with fm2]
+        ]
+      ]
+      
+      if (relationship = 7) ;户主的爷爷奶奶
+      [
+        ;丈夫妻子
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 7]
+        if hw != nobody [create-couple-with hw]
+      ]
+      
+      if (relationship = 8) ;户主的外公外婆
+      [
+        ;丈夫妻子
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 8]
+        if hw != nobody [create-couple-with hw]
+      ]
+      
+      if (relationship = 9) ;户主配偶的爷爷奶奶
+      [
+        ;丈夫妻子
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 9]
+        if hw != nobody [create-couple-with hw]
+      ]
+      
+      if (relationship = 10) ;户主配偶的外公外婆
+      [
+        ;丈夫妻子
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 10]
+        if hw != nobody [create-couple-with hw]
+      ]
+      
+      if (Relationship = 11) ;户主的兄弟姐妹
+      [
+        ;爷爷奶奶外公外婆
+        let gp other people with [not link-neighbor? myself and hhd = [hhd] of myself and (relationship = 7 or relationship = 8)]
+        if gp != nobody [create-grapas-with gp]
+      ]
+    ]
+    set j j + 1
+  ]
+end
+
+to initialize-relationship1 [householdid]
+  ;初始化某个家庭的关系
+  ask people with [hhd = householdid][set relationship 0]
+  
+  ;找到户主
+  ifelse (count people with [hhd = householdid and age >= 18] > 0)
+  [ask one-of people with [hhd = householdid and age >= 18] [set relationship 1]]
+  [ask one-of people with [hhd = householdid] [set relationship 1]]
+  
+  ;初始化其他人与户主的关系
+  let i count people with [hhd = householdid]
+  while [i > 0]
+  [
+    set i i - 1
+    ask one-of people with [relationship = 0 and hhd = householdid]
+    [
+      let hhd1 hhd
+      let hhder1 one-of people with [relationship = 1 and hhd = hhd1]
+      let age1 [age] of hhder1 ;户主的年龄
+      let gender1 [gender] of hhder1 ;户主的性别
+      
+      ;配偶
+      if (gender1 = 0 and age1 >= 20) or (gender1 = 1 and age1 >= 22)
+      [
+        if (relationship = 0 and age - age1 <= 20 and age1 - age <= 20 and gender != gender1 and count people with [hhd = hhd1 and relationship = 2] = 0 and (gender = 1 and age >= 22) or (gender = 0 and age >= 20))
+        [set relationship 2]
+      ]
+      
+      ;判断是否为儿子/女儿 或 儿媳/女婿：年龄差在21~44岁之间
+        if (relationship = 0 and age1 - age <= 44 and age1 - age >= 21) 
+        [
+          if (gender = 1 and age < 22) [set relationship 3] ;未达到适婚年龄的男性，为儿子
+          if (gender = 0 and age < 20) [set relationship 3] ;未达到适婚年龄的女性，为女儿
+        
+          if (gender = 1 and age >= 22) ;如果我是男性，且年龄大于22岁
+          [
+            ;判断户主是否有适婚的女儿
+            ifelse (count people with [relationship = 3 and hhd = hhd1 and gender = 0 and age >= 20] > count people with [relationship = 13 and hhd = hhd1 and gender = 1])
+            [set relationship 13]
+            [set relationship 3]
+          ]
+        
+          if (gender = 0 and age >= 20)
+          [
+            ;判断户主是否有适婚的儿子
+            ifelse (count people with [relationship = 3 and hhd = hhd1 and gender = 1 and age >= 22] < count people with [gender = 0 and relationship = 13 and hhd = hhd1])
+            [set relationship 13]
+            [set relationship 3]
+          ]    
+        ]
+      
+        ;判断是否为孙子、孙女：年龄差大于45岁
+        if (relationship = 0 and age1 - age >= 45) [set relationship 6]
+      
+        ;判断是否为父母：（1）年龄差在21~44岁之间 （2）暂无person的关系为户主的父母
+        if (relationship = 0 and age - age1 >= 21 and age - age1 <= 44 and count people with [gender = [gender] of myself and relationship = 4 and hhd = hhd1] = 0)
+        [set relationship 4]
+      
+        ;判断是否为配偶的父母：（1）年龄在21~44岁之间；（2）有配偶；（3）暂无person的关系为户主的配偶的父母
+        if (relationship = 0 and age - age1 >= 21 and age - age1 <= 44 and count people with [gender = [gender] of myself and relationship = 4 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 5 and hhd = hhd1] = 0 and count people with [hhd = hhd1 and relationship = 2] = 1)
+        [set relationship 5]
+      
+        ;判断是否为户主的爷爷奶奶：（1）年龄差大于45岁；（2）暂无person的关系为户主的爷爷奶奶
+        if (relationship = 0 and age - age1 >= 45 and count people with [gender = [gender] of myself and relationship = 7 and hhd = hhd1] = 0)
+        [set relationship 7]
+      
+        ;判断是否为户主的外公外婆：（1）年龄差大于45岁；（2）已有爷爷奶奶；（3）暂无person的关系为户主的外公外婆
+        if (relationship = 0 and age - age1 >= 45 and count people with [gender = [gender] of myself and relationship = 7 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 8 and hhd = hhd1] = 0)
+        [set relationship 8]
+      
+        ;判断是否为户主配偶的爷爷奶奶：（1）年龄差大于45岁；（2）已有户主的爷爷奶奶外公外婆角色；（3）暂无person的关系为户主配偶的爷爷奶奶 （4）有配偶
+        if (relationship = 0 and age - age1 >= 45 and count people with [gender = [gender] of myself and relationship = 7 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 8 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 9 and hhd = hhd1] = 0 and count people with [hhd = hhd1 and relationship = 2] = 1)
+        [set relationship 9]
+      
+        ;判断是否为户主配偶的外公外婆：（2）年龄差大于45岁；（2）已有户主的爷爷奶奶外公外婆、户主的配偶的爷爷奶奶角色；（3）暂无person的关系为户主配偶的外公外婆的角色；（4）有配偶
+        if (relationship = 0 and age - age1 >= 45 and count people with [gender = [gender] of myself and relationship = 7 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 8 and hhd = hhd1] = 1 and count people with [gender = [gender] of myself and relationship = 9 and hhd = hhd1] = 1 and count people with [hhd = hhd1 and relationship = 2] = 1 and count people with [gender = [gender] of myself and hhd = hhd1 and relationship = 10] = 0)
+        [set relationship 10]
+      
+        ;判断是否为户主的兄弟姐妹 ：（1）与户主年龄差在20岁以内
+        if (relationship = 0)
+       [
+         if (abs (age - age1) <= 20)
+          [set relationship  11]
+       ]
+      
+        ;其他关系
+        if (relationship = 0) [set relationship 12]
+    ]
+  ]
+  
+  ;初始化连线
+  let max-who max [who] of people with [hhd = householdid]
+  let min-who min [who] of people with [hhd = householdid]
+  let j min-who
+  while [j <= max-who]
+  [
+    ask person j
+    [
+      if (relationship = 1) ;户主本人
+      [
+        ;妻子丈夫
+        let hw one-of other people with [not link-neighbor? myself and relationship = 2 and hhd = [hhd] of myself]
+        if hw != nobody [create-couple-with hw]
+        
+        ;父母
+        let fm other people with [not link-neighbor? myself and relationship = 4 and hhd = [hhd] of myself]
+        if (fm != nobody) [create-parents-with fm]
+        
+        ;儿女
+        let sd other people with [not link-neighbor? myself and relationship = 3 and hhd = [hhd] of myself]
+        if (sd != nobody) [create-parents-with sd]
+        
+        ;孙子孙女
+        let gsd other people with [not link-neighbor? myself and relationship = 6 and hhd = [hhd] of myself]
+        if (gsd != nobody) [create-grapas-with gsd]
+        
+        ;爷爷奶奶外公外婆
+        let gp other people with [not link-neighbor? myself and (relationship = 7 or relationship = 8) and hhd = [hhd] of myself]
+        if (gp != nobody) [create-grapas-with gp]
+      ]
+        
+      if (relationship = 2) ;户主的配偶
+      [
+        ;儿女
+        let children other people with [not link-neighbor? myself and relationship = 3 and hhd = [hhd] of myself]
+        if (children != nobody) [create-parents-with children]
+        
+        ;父母
+        let fm other people with [not link-neighbor? myself and relationship = 5 and hhd = [hhd] of myself]
+        if (fm != nobody) [create-parents-with fm]
+        
+        ;爷爷奶奶外公外婆
+        let gp other people with [not link-neighbor? myself and (relationship = 9 or relationship = 10) and hhd = [hhd] of myself]
+        if (gp != nobody) [create-grapas-with gp]
+        
+        ;孙子孙女
+        let sd other people with [not link-neighbor? myself and relationship = 3 and hhd = [hhd] of myself]
+        if (sd != nobody) [create-parents-with sd]
+      ]
+      
+      if (relationship = 3 and ((gender = 1 and age >= 22) or (gender = 0 and age >= 20))) ;户主的儿女
+      [
+        ;妻子丈夫
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 13 and gender != [gender] of myself]
+        if hw != nobody [create-couple-with hw]
+      ]
+      
+      if (relationship = 4) ;户主的父母
+      [
+        ;妻子或丈夫
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 5]
+        if hw != nobody [create-couple-with hw]
+        
+        ;儿女
+        let children other people with [not link-neighbor? myself and hhd = [hhd] of myself and (relationship = 1 or relationship = 11)]
+        if (Children != nobody) [create-parents-with children]
+        
+        ;父母
+        ifelse (gender = 1) 
+        [
+          ;该agent为户主的父亲，则与户主的爷爷奶奶连线
+          let fm other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 7]
+          if (fm != nobody) [create-parents-with fm]
+        ]
+        [
+          ;该agent为户主的母亲，与户主的外公外婆连线
+          let fm other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 8]
+          if (fm != nobody) [create-parents-with fm]
+        ]
+        
+        ;孙子孙女
+        let gsd other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 3]
+        if (gsd != nobody) [create-grapas-with gsd]
+      ]
+      
+      if (relationship = 5) ;户主配偶的父母
+      [
+        ;妻子丈夫
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 5]
+        if hw != nobody [create-couple-with hw]
+        
+        ;父母
+        ifelse (gender = 1)
+        [
+          ;该agent为户主配偶的父亲，则与户主配偶的爷爷奶奶连线
+          let fm other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 9]
+          if (fm != nobody) [create-parents-with fm]
+        ]
+        [
+          ;该agent为户主配偶的母亲，与户主配偶的外公外婆连线
+          let fm other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 108]
+          if (fm != nobody) [create-parents-with fm]
+        ]
+        
+        ;外孙子孙女
+        let gsd other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 3]
+        if (gsd != nobody) [create-grapas-with gsd]
+      ]
+    
+      if (relationship = 6) ;户主的孙子/孙女
+      [
+        ;父母
+        let fm1 one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and ((gender = 1 and age >= 22) or (gender = 0 and age >= 20)) and relationship = 3]
+        if (fm1 != nobody)
+        [
+          create-parent-with fm1
+          let fm2 one-of other people with [couple-neighbor? fm1]
+          if (fm2 != nobody) [create-parent-with fm2]
+        ]
+      ]
+      
+      if (relationship = 7) ;户主的爷爷奶奶
+      [
+        ;丈夫妻子
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 7]
+        if hw != nobody [create-couple-with hw]
+      ]
+      
+      if (relationship = 8) ;户主的外公外婆
+      [
+        ;丈夫妻子
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 8]
+        if hw != nobody [create-couple-with hw]
+      ]
+      
+      if (relationship = 9) ;户主配偶的爷爷奶奶
+      [
+        ;丈夫妻子
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 9]
+        if hw != nobody [create-couple-with hw]
+      ]
+      
+      if (relationship = 10) ;户主配偶的外公外婆
+      [
+        ;丈夫妻子
+        let hw one-of other people with [not link-neighbor? myself and hhd = [hhd] of myself and relationship = 10]
+        if hw != nobody [create-couple-with hw]
+      ]
+      
+      if (Relationship = 11) ;户主的兄弟姐妹
+      [
+        ;爷爷奶奶外公外婆
+        let gp other people with [not link-neighbor? myself and hhd = [hhd] of myself and (relationship = 7 or relationship = 8)]
+        if gp != nobody [create-grapas-with gp]
+      ]
+    ]
+    set j j + 1
+  ]
+end

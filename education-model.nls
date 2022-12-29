@@ -1,0 +1,64 @@
+to education-model
+  ask people with [status = 1]
+  [
+    let updated 0 ;定义一个local variable，用来判断本年是否更新过学历信息
+    
+    ;升高一年级
+    if (edu-year < edu-year-required and updated = 0) [set edu-year-required edu-year-required + 1 set updated 1]
+    
+    ;升学/步入社会
+    if (edu-year = edu-year-required)
+    [
+      ;九年义务教育直接升学
+      if (education = 1 and updated = 0) [set education 2 set edu-year-required 6 set edu-year 1 set updated 1] ;幼儿园升小学
+      if (education = 2 and updated = 0) [set education 3 set edu-year-required 3 set edu-year 1 set updated 1] ;小学升初中
+      if (education = 3 and updated = 0) [set education 4 set edu-year-required 3 set edu-year 1 set updated 1] ;初中升高中
+      
+      ;高中升大学/大专/就业
+      if (education = 4 and updated = 0)
+      [
+        let p random-float 1
+        ;50%升入大学
+        if (p > 0.5) [set education 6 set edu-year-required 4 set edu-year 1 set updated 1]
+        ;40%升入大专
+        if (p <= 0.5 and p > 0.1) [set education 5 set edu-year-required 3 set edu-year 1 set updated 1]
+        ;10%就业
+        if (p <= 0.1) [set status 2 set employed 1 set updated 1]
+      ]
+      
+      ;大专专升本/就业
+      if (education = 5 and updated = 0)
+      [
+        let p random-float 1
+        ;95%就业
+        if (p < 0.95) [set status 2 set employed 1 set updated 1]
+        ;5%升学
+        if (p >= 0.95) [set education 7 set edu-year-required 2 set edu-year 1 set updated 1]
+      ]
+      
+      ;本科毕业后升学/就业
+      if ((education = 6 or education = 7) and updated = 0)
+      [
+        let p random-float 1
+        ;90%就业
+        if (p < 0.9) [set status 2 set employed 1 set updated 1]
+        ;10%读研
+        if (p >= 0.9) [set education 8 set edu-year-required 3 set edu-year 1 set updated 1]      
+      ]
+      
+      ;硕士毕业后升学/就业
+      if (education = 8 and updated = 0)
+      [
+        let p random-float 1
+        ;90%就业
+        if (p < 0.9) [set status 2 set employed 1 set updated 1]
+        ;10%读博
+        if (p >= 0.9) [set education 9 set edu-year-required 5 set edu-year 1 set updated 1]      
+      ]
+      
+      if education = 0 and updated = 0 [set employed 1 set status 2 set updated 1]
+    ]
+  ]
+  
+  print "education model finished"
+end

@@ -1,0 +1,27 @@
+to immigration-model
+  ;暂未做迁入地址选择
+  let num-imm 10 ;每年迁入北京的人数
+  while [num-imm > 0]
+  [
+    let candidate one-of people ;任意选择一个家庭作，新迁入的家庭属性与该家庭一致
+    let new-hhdid max [hhd] of people + 1 ;新建 
+    ask people with [hhd = [hhd] of candidate] [hatch 1 [set hhd new-hhdid]]
+    ask one-of people with [hhd = new-hhdid] [make-choice hhd] ;新迁入的家庭选择地址
+    set num-imm num-imm - count people with [hhd = [hhd] of candidate]  ;完成迁入，目标迁入人数减去本轮迁入人数
+  ]
+  
+  print "immigration model finished"
+end
+
+to Emigration-Model
+  let num-emi 10
+  let i num-emi
+  while [i > 0]
+  [
+    let candidate one-of people ;任意选择一个家庭迁出
+    set i i - count people with [hhd = [hhd] of candidate]
+    ask people with [hhd = [hhd] of candidate] [die]
+  ]
+  
+  print "emigration model finished"
+end

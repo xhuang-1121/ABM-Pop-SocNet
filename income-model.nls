@@ -1,0 +1,23 @@
+to income-model
+  ;已就业的人的工资波动
+  ask people with [status = 2 and employed = 0]
+  [
+    let p random 1
+    if (p < 0.2) [set income income * 1.3] ;20%的人涨薪30%（跳槽）
+    if (p >= 0.2 and p <= 0.7) [set income income * 1.1] ;让50%的人加薪10%
+    if (p > 0.7 and p < 0.9) [set income income] ; 20%的人工资不变
+    if (p >= 0.9) [set income income * 0.7] ; 10%的人降薪30%
+  ]
+  
+  ;今年刚就业的分配工资
+  ask people with [status = 2 and employed = 1]
+  [
+    if (education = 4) [set income 4000]
+    if (Education = 5) [set income 5000]
+    if (Education = 6 or education = 7) [set income 8000]
+    if (Education = 8)[set income 10000]
+    if (Education = 9)[set income 20000]
+  ]
+  
+  print "income model finished"
+end

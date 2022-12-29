@@ -1,0 +1,93 @@
+to setup-agent
+  set agent-dataset gis:load-dataset "household.shp"
+  foreach gis:feature-list-of agent-dataset
+  [
+    vector-feature ->
+    let coord-tuple gis:location-of (first (first (gis:vertex-lists-of vector-feature)))
+    let hhd1 gis:property-value vector-feature "hhd"
+    let age1 gis:property-value vector-feature "Age"
+    let gender1 gis:property-value vector-feature  "Gender"
+    let income1  gis:property-value vector-feature "Income"
+    let education1 gis:property-value vector-feature "Education"
+    let license1 gis:property-value vector-feature "license"
+    let number1 gis:property-value vector-feature "number"
+    let hhd-income1 gis:property-value vector-feature "hhd_income"
+    let cv1 gis:property-value vector-feature "CV"
+    let bev1 gis:property-value vector-feature "BEV"
+    let phev1 gis:property-value vector-feature "PHEV"
+    let retiree1 gis:property-value vector-feature "Retiree"
+    let long-coord item 0 coord-tuple
+    let lat-coord item 1 coord-tuple
+
+  set-default-shape people "circle"
+
+    create-people 1 [
+      setxy long-coord lat-coord
+;      setxy random-pxcor random-pycor
+      set hhd hhd1
+      set Age age1
+      set Gender gender1
+      set Income income1
+      set License license1
+      set number number1
+      set education-level education1
+      set hhd-income hhd-income1
+      set cv cv1
+      set phev phev1
+      set bev bev1
+      set retiree retiree1
+      
+      ;临时设置，之后调整
+      set adv random 2
+      set fri random 2
+      set nei random 2
+      set max-friend random 20
+      ifelse (max-friend >= 5) [set min-friend max-friend - 5][set min-friend 0]
+      set buybev 1 + random 4
+      set buyphev 1 + random 4
+      
+    ]
+  ]
+; color and size
+  ask people [set size 0.5
+    set color white]
+end
+
+to setup-map
+  set beijing-dataset gis:load-dataset "Beijing.shp"
+  gis:set-world-envelope (gis:envelope-of beijing-dataset)
+  let i 1
+  foreach gis:feature-list-of beijing-dataset [ feature ->
+    ask patches gis:intersecting feature [
+      set centroid gis:location-of gis:centroid-of feature
+        ask patch item 0 centroid item 1 centroid [
+          set ID i
+        ]
+      ]
+      set i i + 1
+    ]
+
+    gis:set-drawing-color white
+    gis:draw beijing-dataset 1
+end
+
+to setup-residence
+  set residence-dataset gis:load-dataset "residence.shp"
+  foreach gis:feature-list-of residence-dataset
+  [
+    vector-feature ->
+    let coord-tuple gis:location-of (first (first (gis:vertex-lists-of vector-feature)))
+    let price1 gis:property-value vector-feature "price"
+    let long-coord item 0 coord-tuple
+    let lat-coord item 1 coord-tuple
+    set-default-shape residences "house"
+    
+    create-residences 1
+    [
+      set price price1
+      setxy long-coord lat-coord
+    ]
+  ]
+  
+  ask residences [set size 0.5]
+end

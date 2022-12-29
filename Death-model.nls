@@ -1,0 +1,26 @@
+to death-model
+  ;let death-rate 0.0054
+  let num-death 10
+  let i 1
+  while [i <= num-death]
+  [
+    set i i + 1
+    ask one-of people
+    [
+      if (relationship = 1 and count people with [hhd = [hhd] of myself] >= 2)
+      [
+        let hhd1 hhd
+        set relationship 0
+        ifelse (count other people with [hhd = hhd1 and age >= 18] > 0)
+        [ask one-of other people with [hhd = hhd1 and age >= 18] [set relationship 1]]
+        [ask one-of other people with [hhd = hhd1][set relationship 1]]
+        let hhder one-of people with [hhd = hhd1 and relationship = 1]
+        ask hhder [update-relationship hhd1 hhder]
+      ]
+      ask my-links [die]
+      die
+      update-hhd-att
+    ]
+  ]
+  print "Death model finished"
+end

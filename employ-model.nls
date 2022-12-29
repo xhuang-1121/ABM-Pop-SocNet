@@ -1,0 +1,16 @@
+to employ-model
+  ;退休
+  ask people with [(gender = 0 and age >= 55) or (gender = 1 and age >= 60) and status = 2][set status 3 set retiree 1 set income income / 3]
+
+  
+ ;就业的人失业
+  let num-unemployed 10
+  ask n-of num-unemployed people with [status = 2] [set status 3 set income 0]
+  
+ ;失业的人就业
+  let num-employed 8
+  ask n-of num-employed people with [status = 3 and retiree = 0] [set status 2 set income 10000]
+  
+  update-hhd-att
+  print "employ model finished"
+end

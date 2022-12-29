@@ -1,0 +1,56 @@
+to residence-price
+  ask residences
+  [
+    if price <= 20000 [set pricegroup 1]
+    if price > 20000 and price <= 30000 [set pricegroup 2]
+    if price > 30000 and price <= 40000 [set pricegroup 3]
+    if price > 40000 and price <= 50000 [set pricegroup 4]
+    if price > 50000 and price <= 60000 [set pricegroup 5]
+    if price > 60000 and price <= 70000 [set pricegroup 6]
+    if price > 70000 [set pricegroup 7]
+  ]
+end
+
+to make-choice [householdid]
+  let hhd-income1 [hhd-income] of one-of people with [hhd = householdid]
+  ;1-小于10万；2-10~20万；3-20~30万；4-30~50万；5-50~70万；6-70~100万；7-大于100万
+  if hhd-income1 <= 100000
+  [
+    let new-location one-of residences with [pricegroup = 1]
+    ask people with [hhd = householdid] [move-to new-location]
+  ]
+  if hhd-income1 <= 200000 and hhd-income1 > 100000
+  [
+    let new-location one-of residences with [pricegroup = 2]
+    ask people with [hhd = householdid] [move-to new-location]
+  ]
+  if hhd-income1 <= 300000 and hhd-income1 > 200000
+  [
+    let new-location one-of residences with [pricegroup = 3]
+    ask people with [hhd = householdid] [move-to new-location]
+  ]
+  if hhd-income1 <= 500000 and hhd-income1 > 300000
+  [
+    let new-location one-of residences with [pricegroup = 4]
+    ask people with [hhd = householdid] [move-to new-location]
+  ]
+  if hhd-income1 <= 700000 and hhd-income1 > 500000
+  [
+    let new-location one-of residences with [pricegroup = 5]
+    ask people with [hhd = householdid] [move-to new-location]
+  ]
+  if hhd-income1 <= 1000000 and hhd-income1 > 700000
+  [
+    let new-location one-of residences with [pricegroup = 6]
+    ask people with [hhd = householdid] [move-to new-location]
+  ]
+  if hhd-income1 > 1000000
+  [
+    let new-location one-of residences with [pricegroup = 7]
+    ask people with [hhd = householdid] [move-to new-location]
+  ]
+end
+
+to update-location
+  
+end

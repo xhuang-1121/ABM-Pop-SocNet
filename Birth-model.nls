@@ -1,0 +1,40 @@
+;生孩子
+to birth-model
+  let num-children 10
+  let i 1
+  while [i <= num-children]
+  [
+    ask one-of people with [gender = 0 and count in-couple-neighbors = 1 and count in-parent-neighbors with [age < [age] of myself] <= 2 and age <= 45] ;找到母亲
+    [
+      let ft one-of people with [couple-neighbor? myself]
+      hatch 1
+      [
+        set gender random 1
+        set status 1
+        set education 0
+        set edu-year 1
+        set edu-year-required 3
+        set income 0
+        set age 0
+        set max-friend 0
+        set min-friend 0
+        set my-score 0
+        set cv 0
+        set bev 0
+        set phev 0
+        set employed 0
+        set relationship 0
+        ;set further-edu 0
+        create-parent-with myself
+        create-parent-with ft
+        if ([relationship] of myself <= 2) [set relationship 3]
+        if ([relationship] of myself = 4) [set relationship 11]
+        if ([relationship] of myself = 3 or [relationship] of myself = 13)[set relationship 6]
+        if (relationship = 0) [set relationship 12]
+      ]
+    ]
+    set i i + 1
+  ]
+  update-hhd-att
+  print "birth model finished"
+end
